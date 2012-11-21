@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with TexturePacker http://texturepacker.com-->
+<!-- $TexturePacker:SmartUpdate:a004b92b51c582b09f584db9838c82dd$ -->
+<TextureAtlas imagePath="examples.png">
+    <SubTexture name="counter" x="371" y="104" width="50" height="502"/>
+    <SubTexture name="line_1" x="2" y="378" width="284" height="70"/>
+    <SubTexture name="line_2" x="2" y="306" width="284" height="70"/>
+    <SubTexture name="tap" x="292" y="104" width="77" height="65"/>
+    <SubTexture name="tv" x="2" y="104" width="288" height="200"/>
+    <SubTexture name="tv_line" x="2" y="450" width="192" height="5"/>
+    <SubTexture name="water" x="423" y="104" width="15" height="130"/>
+    <SubTexture name="wave" x="2" y="2" width="441" height="100"/>
+</TextureAtlas>
