@@ -96,9 +96,9 @@ package com.krechagames.demos
 		
 		private function update(e:Event):void 
 		{					
-			if ( keyPoll.isDown ( Keyboard.UP ) ) {
+			if ( keyPoll.isDown ( Keyboard.W ) ) {
 				if ( velocity < 10 ) velocity += .1				
-			}else if (  keyPoll.isDown ( Keyboard.DOWN ) ){
+			}else if (  keyPoll.isDown ( Keyboard.S ) ){
 				if ( velocity > -5 ) velocity -= .2
 			}else {
 				if ( velocity > 0 ) {
@@ -109,9 +109,9 @@ package com.krechagames.demos
 			}		
 			
 		
-			if ( keyPoll.isDown ( Keyboard.LEFT ) ) {
+			if ( keyPoll.isDown ( Keyboard.A ) ) {
 				angle -= .002 * velocity;
-			}else if ( keyPoll.isDown ( Keyboard.RIGHT ) ) {
+			}else if ( keyPoll.isDown ( Keyboard.D ) ) {
 				angle += .002 * velocity;
 			}
 			
