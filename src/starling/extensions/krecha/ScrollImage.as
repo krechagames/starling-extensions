@@ -80,14 +80,17 @@ package starling.extensions.krecha
 		private var mTilesPivotX:Number = 0;		
 		private var mTilesPivotY:Number = 0;		
 		private var mTextureRatio:Number;
+		private var mUseBaseTexture:Boolean;
 
 		/**
-		 * Creates an object with tiled texture. Default without mipMapping to avoid some borders anrtefacts.
+		 * Creates an object with tiled texture. Default without mipMapping to avoid some borders anrtefacts. Property use BaseTexture determinant using whole texture (without UV clipping) - use it for better performance special on mobile.
 		 * @param width
 		 * @param height
+		 * @param useBaseTexture
 		 */
-		public function ScrollImage ( width:Number, height:Number )
+		public function ScrollImage ( width:Number, height:Number, useBaseTexture:Boolean = false )
 		{
+			this.mUseBaseTexture = useBaseTexture;
 			//0,1,2,3 - transform matrix, 4 - alpha, must start from vc5
 			sRegister = 5;
 
@@ -407,7 +410,7 @@ package starling.extensions.krecha
 			
 			// activate program (shader)
 			var tinted:Boolean = (sRenderColorAlpha[3] != 1.0) || color != 0xFFFFFF || tintedlayer;			
-			context.setProgram (Starling.current.getProgram ( getImageProgramName ( tinted, mMipMapping, mSmoothing, mTexture.format ) ));
+			context.setProgram (Starling.current.getProgram ( getImageProgramName ( tinted, mMipMapping, mSmoothing, mTexture.format, mUseBaseTexture ) ));
 			
 			//draw the object
 			context.drawTriangles( mIndexBuffer, 0, mIndexData.length/3 );
@@ -499,87 +502,97 @@ package starling.extensions.krecha
 			//v1 -> uv
 			//v2 -> x,y of start
 			//v3 ->width, height and reciprocals
-			
-			for each (var tinted:Boolean in [true, false])
-            {
-				vertexProgramCode =		tinted ?
-				"mov vt0, vc4 \n" + 						// store color in temp0			
-				"mul vt0, vt0, vc[va2.x] \n"+ 				// multiply color with alpha for layer and pass it to fragment shader	
-				"pow vt1, vt0.w, va2.z \n" + 				// if mPremulitply == 0 alpha multiplayer == 1				
-				"mul vt0.xyz, vt0.xyz, vt1.xxx \n"+ 		// multiply color by alpha 		
-				"mov v0, vt0 \n" 							// pass it to fragment shader				
-				:
-				"mov v0, vc4 \n";  							// pass color to fragment shader	
-				
-				vertexProgramCode +=	
-				"mov vt2, va3 \n" +  						// store in temp1 the tile clipping			
-				"mov v2, vt2 \n" +     						// pass the x and y of start		
-				"mov v3.xy, vt2.zw \n" +   					// pass the width & height
-				"rcp v3.z, vt2.z \n" +   					// pass the reciprocals of width
-				"rcp v3.w, vt2.w \n" +  					// pass the reciprocals of heigh				
-				
-				"m44 vt2, va1, vc[va2.y] \n" + 				// mutliply UV by transform matrix
-				"mov v1, vt2 \n" +  						// pass the uvs.	
-				
-				"m44 op, va0, vc0 \n" 						// 4x4 matrix transform to output space	
-				
-				vertexProgramAssembler.assemble(Context3DProgramType.VERTEX, vertexProgramCode);	
-				fragmentProgramCode =				
-				"mov ft0, v1 \n" + 							// sotre UV`a to temp0
-				"mul ft0.xy, ft0.xy, v3.zw \n" + 			// multiply to larger number
-				"frc ft0.xy, ft0.xy \n" +					// keep the fraction of the large number
-				"mul ft0.xy, ft0.xy, v3.xy \n" + 			// multiply to smaller number
-				"add ft0.xy, ft0.xy, v2.xy \n" +			// add the start x & y of the tile
-				"tex ft1, ft0, fs0 <???> \n" 				// sample texture 0
-				
-				fragmentProgramCode +=	tinted ?				
-				"kil v0.w \n" +								// kill pixel if tile alpha == 0
-				"mul oc, ft1, v0 \n"   						// multiply color with texel color and output
-				:
-				"mov oc, ft1 \n"   							// output
-				
-				var smoothingTypes:Array = [
-					TextureSmoothing.NONE,
-					TextureSmoothing.BILINEAR,
-					TextureSmoothing.TRILINEAR
-				];
+			for each (var useBase:Boolean in [true, false]) {
+				for each (var tinted:Boolean in [true, false])
+				{
+					vertexProgramCode =		tinted ?
+					"mov vt0, vc4 \n" + 						// store color in temp0			
+					"mul vt0, vt0, vc[va2.x] \n"+ 				// multiply color with alpha for layer and pass it to fragment shader	
+					"pow vt1, vt0.w, va2.z \n" + 				// if mPremulitply == 0 alpha multiplayer == 1				
+					"mul vt0.xyz, vt0.xyz, vt1.xxx \n"+ 		// multiply color by alpha 		
+					"mov v0, vt0 \n" 							// pass it to fragment shader				
+					:
+					"mov v0, vc4 \n";  							// pass color to fragment shader	
 					
-				var formats:Array = [
-					Context3DTextureFormat.BGRA,
-					Context3DTextureFormat.COMPRESSED,
-					"compressedAlpha" // use explicit string for compatibility
-				];
+					vertexProgramCode +=
+					"mov vt2, va3 \n" 	 						// store in temp1 the tile clipping		
+					
+					var clippingData:String = 						
+					"mov v2, vt2 \n" +     						// pass the x and y of start		
+					"mov v3.xy, vt2.zw \n" +   					// pass the width & height
+					"rcp v3.z, vt2.z \n" +   					// pass the reciprocals of width
+					"rcp v3.w, vt2.w \n" 						// pass the reciprocals of heigh						
 				
-				for each (var mipmap:Boolean in [true, false])
-						{
-							for each (var smoothing:String in smoothingTypes)
+					vertexProgramCode += useBase ? '' : clippingData;					
+					vertexProgramCode +=
+					"m44 vt2, va1, vc[va2.y] \n" + 				// mutliply UV by transform matrix
+					"mov v1, vt2 \n" +  						// pass the uvs.	
+					
+					"m44 op, va0, vc0 \n" 						// 4x4 matrix transform to output space	
+					
+					vertexProgramAssembler.assemble(Context3DProgramType.VERTEX, vertexProgramCode);	
+					fragmentProgramCode =				
+					"mov ft0, v1 \n" 							// sotre UV`a to temp0
+					
+					var clippingUV:String =
+					"mul ft0.xy, ft0.xy, v3.zw \n" + 			// multiply to larger number
+					"frc ft0.xy, ft0.xy \n" +					// keep the fraction of the large number
+					"mul ft0.xy, ft0.xy, v3.xy \n" + 			// multiply to smaller number
+					"add ft0.xy, ft0.xy, v2.xy \n"				// add the start x & y of the tile
+					
+					fragmentProgramCode += useBase ? '' : clippingUV;				
+					
+					fragmentProgramCode +=
+					"tex ft1, ft0, fs0 <???> \n" 				// sample texture 0
+					
+					fragmentProgramCode +=	tinted ?								
+					"mul oc, ft1, v0 \n"   						// multiply color with texel color and output
+					:
+					"mov oc, ft1 \n"   							// output
+					
+					var smoothingTypes:Array = [
+						TextureSmoothing.NONE,
+						TextureSmoothing.BILINEAR,
+						TextureSmoothing.TRILINEAR
+					];
+						
+					var formats:Array = [
+						Context3DTextureFormat.BGRA,
+						Context3DTextureFormat.COMPRESSED,
+						"compressedAlpha" // use explicit string for compatibility
+					];
+					
+					for each (var mipmap:Boolean in [true, false])
 							{
-								for each (var format:String in formats)
+								for each (var smoothing:String in smoothingTypes)
 								{
-									var options:Array = ["2d"];
-									
-									if (format == Context3DTextureFormat.COMPRESSED)
-										options.push("dxt1");
-									else if (format == "compressedAlpha")
-										options.push("dxt5");
-									
-									if (smoothing == TextureSmoothing.NONE)
-										options.push("nearest", mipmap ? "mipnearest" : "mipnone");
-									else if (smoothing == TextureSmoothing.BILINEAR)
-										options.push("linear", mipmap ? "mipnearest" : "mipnone");
-									else
-										options.push("linear", mipmap ? "miplinear" : "mipnone");
-								  
-									fragmentProgramAssembler.assemble(Context3DProgramType.FRAGMENT,
-										fragmentProgramCode.replace("???", options.join()));
-								  
-									target.registerProgram(
-										getImageProgramName(tinted, mipmap, smoothing, format),
-										vertexProgramAssembler.agalcode, fragmentProgramAssembler.agalcode);
-									
+									for each (var format:String in formats)
+									{
+										var options:Array = ["2d"];
+										
+										if (format == Context3DTextureFormat.COMPRESSED)
+											options.push("dxt1");
+										else if (format == "compressedAlpha")
+											options.push("dxt5");
+										
+										if (smoothing == TextureSmoothing.NONE)
+											options.push("nearest", mipmap ? "mipnearest" : "mipnone", "repeat");
+										else if (smoothing == TextureSmoothing.BILINEAR)
+											options.push("linear", mipmap ? "mipnearest" : "mipnone", "repeat");
+										else
+											options.push("linear", mipmap ? "miplinear" : "mipnone", "repeat");
+									  
+										fragmentProgramAssembler.assemble(Context3DProgramType.FRAGMENT,
+											fragmentProgramCode.replace("???", options.join()));
+									  
+										target.registerProgram(
+											getImageProgramName(tinted, mipmap, smoothing, format, useBase),
+											vertexProgramAssembler.agalcode, fragmentProgramAssembler.agalcode);
+										
+									}
 								}
-							}
-						}		
+							}		
+					}
 			}
 		}
 
@@ -591,7 +604,7 @@ package starling.extensions.krecha
 		 * @param format
 		 * @return
 		 */
-		private static function getImageProgramName( tinted:Boolean = false, mipMap:Boolean=true, smoothing:String="bilinear", format:String="bgra" ):String
+		private static function getImageProgramName( tinted:Boolean = false, mipMap:Boolean=true, smoothing:String="bilinear", format:String="bgra", useBaseTexture:Boolean=false ):String
         {
             var bitField:uint = 0;
             
@@ -607,9 +620,14 @@ package starling.extensions.krecha
                 bitField |= 1 << 5;
             else if (format == "compressedAlpha")
                 bitField |= 1 << 6;
-            
+				
+             if ( useBaseTexture )
+                bitField |= 1 << 7;
+            else
+                bitField |= 1 << 8;
+				
             var name:String = sProgramNameCache[bitField];
-            
+           
             if (name == null)
             {
                 name = "SImage_i." + bitField.toString(16);
