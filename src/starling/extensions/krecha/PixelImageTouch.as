@@ -26,7 +26,7 @@ package starling.extensions.krecha
 		{				
 			if (getBounds(this).containsPoint(localPoint) && hitArea && !hitArea.disposed )
             {
-				return hitArea.getAlphaPixel ( localPoint.x + hitArea.width * SubTexture (texture).clipping.x, localPoint.y + hitArea.height *  SubTexture (texture).clipping.y ) >= threshold ? this : null;	
+				return _hitArea.getAlphaPixel ( localPoint.x + texture.frame.x + hitArea.width * SubTexture (texture).clipping.x, localPoint.y + texture.frame.y + hitArea.height *  SubTexture (texture).clipping.y ) >= threshold ? this : null;				
             } else {				
 				return super.hitTest ( localPoint, forTouch );
 			} 			
