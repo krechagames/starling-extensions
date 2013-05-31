@@ -155,7 +155,7 @@ package starling.extensions.krecha
 			if ( index > numLayers ) index = numLayers + 1;
 
 			if ( mLayers.length == 0 && mLayers.length < mMaxLayersAmount ) {
-				mainSetup ( layer );				
+				mainSetup ( layer );			
 			} else if ( mTexture != layer.baseTexture ) {
 				throw new Error ( "Layers must use this same texture.");
 				
@@ -219,7 +219,7 @@ package starling.extensions.krecha
 		 * Setup object property using first layer.
 		 * @param layer
 		 */
-		private function mainSetup ( layer:ScrollTile ):void 
+		private function mainSetup ( layer:ScrollTile, updateCanvas:Boolean = false ):void 
 		{	
 			mMainLayer = layer;
 			mTexture = mMainLayer.baseTexture;		
@@ -233,26 +233,28 @@ package starling.extensions.krecha
 			maxU = mCanvasWidth / mTextureWidth;			
 			maxV = mCanvasHeight / mTextureHeight;	
 			
-			if ( mLayerVertexData == null ) {
-				mLayerVertexData = new VertexData (4);						
+			
+			mLayerVertexData = new VertexData (4);						
 
-				mLayerVertexData.setPosition ( 0, 0, 0 );
-				mLayerVertexData.setPosition ( 1, mCanvasWidth, 0);
-				mLayerVertexData.setPosition ( 2, 0, mCanvasHeight);
-				mLayerVertexData.setPosition ( 3, mCanvasWidth, mCanvasHeight);
-					
-				mLayerVertexData.setTexCoords (0, 0, 0);
-				mLayerVertexData.setTexCoords (1, maxU, 0 );
-				mLayerVertexData.setTexCoords (2, 0, maxV );
-				mLayerVertexData.setTexCoords (3, maxU, maxV );	
-			}
+			mLayerVertexData.setPosition ( 0, 0, 0 );
+			mLayerVertexData.setPosition ( 1, mCanvasWidth, 0);
+			mLayerVertexData.setPosition ( 2, 0, mCanvasHeight);
+			mLayerVertexData.setPosition ( 3, mCanvasWidth, mCanvasHeight);
+				
+			mLayerVertexData.setTexCoords (0, 0, 0);
+			mLayerVertexData.setTexCoords (1, maxU, 0 );
+			mLayerVertexData.setTexCoords (2, 0, maxV );
+			mLayerVertexData.setTexCoords (3, maxU, maxV );	
+		
+			
+			if ( updateCanvas )	updateMesh ();
 		}
-
+		
 		/**
 		 * Update mesh
 		 */
 		private function updateMesh ():void
-		{	
+		{				
 			if ( mMainLayer ) {				
 				resetVertices ();
 			
@@ -435,7 +437,7 @@ package starling.extensions.krecha
                 createBuffers();
             else
             {  
-                mVertexBuffer.uploadFromVector(mVertexData.rawData, 0, mVertexData.numVertices);
+                mVertexBuffer.uploadFromVector(mVertexData.rawData, 0, mVertexData.numVertices);				
                 mSyncRequired = false;
             }		
         }
@@ -474,11 +476,19 @@ package starling.extensions.krecha
 		 * Register the programs
 		 */
 		private function registerPrograms():void
-		{
+		{			
 			var target:Starling = Starling.current;			
 			if ( target.hasProgram( mBaseProgram ) )
 				return; // already registered				
-			
+			preparePrograms ()			
+		}	
+		
+		/**
+		 * Upload all programs.
+		 */
+		public static function preparePrograms ():void
+		{
+			var target:Starling = Starling.current;			
 			// create vertex and fragment programs from assembly
             var vertexProgramAssembler:AGALMiniAssembler = new AGALMiniAssembler();
             var fragmentProgramAssembler:AGALMiniAssembler = new AGALMiniAssembler();
@@ -594,8 +604,8 @@ package starling.extensions.krecha
 							}		
 					}
 			}
+			
 		}
-
 		/**
 		 * Return program name.
 		 * @param tinted
@@ -672,7 +682,18 @@ package starling.extensions.krecha
 			sRenderColorAlpha[1] = ((color >>  8) & 0xff) / 255.0;
 			sRenderColorAlpha[2] = ( color 		 & 0xff) / 255.0;	
 		}
-
+		
+		/**
+		 * Canvas width & hight in pixels - better perfomance with one upload
+		 */
+		public function setCanvasSize ( width:Number, height:Number ):void {
+			mCanvasWidth = width;
+			mCanvasHeight = height;
+			if ( mMainLayer ) {				
+				mainSetup ( mMainLayer, true );				
+				mSyncRequired = true;				
+			}		
+		}
 		/**
 		 * Canvas width in pixels.
 		 */
@@ -686,9 +707,9 @@ package starling.extensions.krecha
 		public function set canvasWidth (value:Number):void 
 		{ 			
 			mCanvasWidth = value;
-			if ( mMainLayer ){
-				mainSetup ( mMainLayer );
-				mSyncRequired = true;
+			if ( mMainLayer ) {				
+				mainSetup ( mMainLayer, true );				
+				mSyncRequired = true;				
 			}
 		}
 
@@ -707,7 +728,7 @@ package starling.extensions.krecha
 			mCanvasHeight = value;
 
 			if ( mMainLayer ){
-				mainSetup ( mMainLayer );
+				mainSetup ( mMainLayer, true );
 				mSyncRequired = true;
 			}
 		}
