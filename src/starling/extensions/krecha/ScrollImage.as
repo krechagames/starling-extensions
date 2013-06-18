@@ -1,6 +1,7 @@
 package starling.extensions.krecha 
 {
 	import com.adobe.utils.AGALMiniAssembler;
+	import starling.utils.MatrixUtil;
 
 	import flash.display3D.*;
 	import flash.geom.*;
@@ -61,7 +62,7 @@ package starling.extensions.krecha
 		
 		//layers
 		private var mLayers:Vector.<ScrollTile> = new Vector.<ScrollTile> ();	
-		private var mLayersMatrix:Vector.<Matrix3D> = new Vector.<Matrix3D> ();	
+		private var mLayersMatrix:Vector.<Matrix> = new Vector.<Matrix> ();	
 		private var mMainLayer:ScrollTile;
 		private var mLayerVertexData:VertexData;
 		private var mFreez:Boolean;
@@ -164,7 +165,7 @@ package starling.extensions.krecha
 			}
 			
 			mLayers.splice ( index, 0, layer );	
-			mLayersMatrix.splice ( index, 0,  new Matrix3D () );	
+			mLayersMatrix.splice ( index, 0,  new Matrix () );	
 			
 			updateMesh ();	
 			return layer;
@@ -272,7 +273,7 @@ package starling.extensions.krecha
 		private function reset():void 
 		{
 			mLayers = new Vector.<ScrollTile> ();
-			mLayersMatrix = new Vector.<Matrix3D> ();
+			mLayersMatrix = new Vector.<Matrix> ();
 			mMainLayer = null;
 			mTextureWidth = mTextureHeight = 0;
 			resetVertices ();
@@ -404,8 +405,7 @@ package starling.extensions.krecha
 				
 				tintedlayer = tintedlayer || layer.color != 0xFFFFFF || layer.alpha != 1.0;
 
-				sMatrix = mFreez ? mLayersMatrix[i] : calculateMatrix ( layer, mLayersMatrix[i] );		
-				
+				MatrixUtil.convertTo3D ( mFreez ? mLayersMatrix[i] : calculateMatrix ( layer, mLayersMatrix[i] ), sMatrix );				
 				context.setProgramConstantsFromVector (Context3DProgramType.VERTEX, getColorRegister (i), layer.colorTrans, 1);				
 				context.setProgramConstantsFromMatrix (Context3DProgramType.VERTEX, getTransRegister (i), sMatrix, true);				
 			}	
@@ -448,26 +448,26 @@ package starling.extensions.krecha
 		 * @param matrix
 		 * @return
 		 */
-		private function calculateMatrix ( layer:ScrollTile, matrix:Matrix3D ):Matrix3D
+		private function calculateMatrix ( layer:ScrollTile, matrix:Matrix ):Matrix
 		{
 			var pOffset:Number = mParOffset ? layer.paralax : 1;
 			var pScale:Number = mParScale ? layer.paralax : 1;
 			var angle:Number = layer.rotation + tilesRotation;
 
-			matrix.identity ();		
+			matrix.identity ();						
+			MatrixUtil.prependTranslation ( matrix,  -mTilesPivotX % 1, - mTilesPivotY % 1 );
+				
 			
-			matrix.prependTranslation ( -mTilesPivotX, - mTilesPivotY, 0);
-
 			//for no square ratio, scale to square
-			if ( mTextureRatio != 1 ) matrix.appendScale ( 1, 1 / mTextureRatio,  1 );
 
-			matrix.appendScale ( 1 / (layer.scaleX * 1 / pScale) / tilesScaleX + 1 - pScale, 1 / (layer.scaleY * 1 / pScale) / tilesScaleY + 1 - pScale, 1 );
-			matrix.appendRotation ( - angle * 180 / Math.PI, Vector3D.Z_AXIS );
-
+			if ( mTextureRatio != 1 ) matrix.scale (1, 1 / mTextureRatio);			
+			matrix.scale (1 / (layer.scaleX * 1 / pScale) / tilesScaleX + 1 - pScale, 1 / (layer.scaleY * 1 / pScale) / tilesScaleY + 1 - pScale );
+			matrix.rotate (- angle);
 			//for no square ratio, unscale from square to orginal ratio
-			if ( mTextureRatio != 1 ) 	matrix.appendScale ( 1, mTextureRatio,  1 );
+			if ( mTextureRatio != 1 ) matrix.scale ( 1, mTextureRatio);
 
-			matrix.appendTranslation ( mTilesPivotX - (layer.offsetX + mTilesOffsetX )  / mTextureWidth * pOffset, mTilesPivotY -(layer.offsetY + mTilesOffsetY ) / mTextureHeight * pOffset, 0);	
+			matrix.translate ( (mTilesPivotX - (layer.offsetX + mTilesOffsetX )  / mTextureWidth * pOffset) % layer.baseClipping.width, (mTilesPivotY -(layer.offsetY + mTilesOffsetY ) / mTextureHeight * pOffset) % layer.baseClipping.height);
+		
 			return matrix;
 		}
 
