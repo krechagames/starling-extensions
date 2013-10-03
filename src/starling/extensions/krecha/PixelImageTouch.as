@@ -32,7 +32,7 @@ package starling.extensions.krecha
 				if ( frame.containsPoint (localPoint )){
 					var clippingX:Number = texture is SubTexture ? SubTexture (texture).clipping.x : 0;
 					var clippingY:Number = texture is SubTexture ? SubTexture (texture).clipping.y : 0;				
-					return _hitArea.getAlphaPixel ( localPoint.x + texture.frame.x + hitArea.width * clippingX, localPoint.y + texture.frame.y + hitArea.height * clippingY ) >= _threshold ? this : null;				
+					return _hitArea.getAlphaPixel ( ( localPoint.x + texture.frame.x + hitArea.width * clippingX ) * texture.scale, ( localPoint.y + texture.frame.y + hitArea.height * clippingY ) * texture.scale ) >= _threshold ? this : null;				
 				}else {
 					return null;
 				}
