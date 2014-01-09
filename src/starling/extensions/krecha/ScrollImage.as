@@ -1,12 +1,9 @@
 package starling.extensions.krecha 
 {
 	import com.adobe.utils.AGALMiniAssembler;
-	import starling.utils.MatrixUtil;
-
 	import flash.display3D.*;
 	import flash.geom.*;
 	import flash.utils.Dictionary;
-
 	import starling.core.RenderSupport;
 	import starling.core.Starling;
 	import starling.display.DisplayObject;
@@ -14,7 +11,10 @@ package starling.extensions.krecha
 	import starling.events.Event;
 	import starling.textures.Texture;
 	import starling.textures.TextureSmoothing;
+	import starling.utils.MatrixUtil;
 	import starling.utils.VertexData;
+
+
 
 	/**
 	 * Display object with tile texture, may contain 16 TileTexture objects
@@ -586,12 +586,16 @@ package starling.extensions.krecha
 											options.push("dxt5");
 										
 										if (smoothing == TextureSmoothing.NONE)
-											options.push("nearest", mipmap ? "mipnearest" : "mipnone", "clamp");
+											options.push("nearest", mipmap ? "mipnearest" : "mipnone");
 										else if (smoothing == TextureSmoothing.BILINEAR)
-											options.push("linear", mipmap ? "mipnearest" : "mipnone", "clamp");
+											options.push("linear", mipmap ? "mipnearest" : "mipnone");
 										else
-											options.push("linear", mipmap ? "miplinear" : "mipnone", "clamp");									
-								
+											options.push("linear", mipmap ? "miplinear" : "mipnone");
+										
+										if (target.profile == 'baselineExtended' || target.profile == 'baseline' && !useBase)
+										options.push("clamp");
+										else
+										options.push("repeat");
 										
 										fragmentProgramAssembler.assemble(Context3DProgramType.FRAGMENT,
 											fragmentProgramCode.replace("???", options.join()));
