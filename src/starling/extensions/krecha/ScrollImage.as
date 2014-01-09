@@ -586,16 +586,12 @@ package starling.extensions.krecha
 											options.push("dxt5");
 										
 										if (smoothing == TextureSmoothing.NONE)
-											options.push("nearest", mipmap ? "mipnearest" : "mipnone");
+											options.push("nearest", mipmap ? "mipnearest" : "mipnone", "clamp");
 										else if (smoothing == TextureSmoothing.BILINEAR)
-											options.push("linear", mipmap ? "mipnearest" : "mipnone");
+											options.push("linear", mipmap ? "mipnearest" : "mipnone", "clamp");
 										else
-											options.push("linear", mipmap ? "miplinear" : "mipnone");
-										
-										if (target.profile == 'baselineExtended')
-										options.push("clamp");
-										else
-										options.push("repeat");
+											options.push("linear", mipmap ? "miplinear" : "mipnone", "clamp");									
+								
 										
 										fragmentProgramAssembler.assemble(Context3DProgramType.FRAGMENT,
 											fragmentProgramCode.replace("???", options.join()));
