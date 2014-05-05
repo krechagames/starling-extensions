@@ -15,24 +15,29 @@ package starling.extensions.krecha
 	{
 		private var _hitArea:PixelHitArea;
 		private var _threshold:uint;
+		private var textureFrame:Rectangle;
 		private var frame:Rectangle;
 
 		public function PixelImageTouch ( texture:Texture, hitArea:PixelHitArea=null, threshold:uint = 0xFF )
 		{
 			super ( texture );				
 			this.hitArea = hitArea;				
-			this.threshold = threshold;			
-			this.frame = new Rectangle ( -texture.frame.x, -texture.frame.y, texture.width, texture.height );	
+			this.threshold = threshold;				
+			this.textureFrame = texture.frame != null ? texture.frame : new Rectangle ( 0, 0, texture.width, texture.height );
+			this.frame = new Rectangle ( -textureFrame.x, -textureFrame.y, textureFrame.width, textureFrame.height );				
+			frame = frame.intersection (textureFrame);		
 		}
 
 		override public function hitTest(localPoint:Point, forTouch:Boolean = false):DisplayObject 
 		{						
 			if ( hitArea && !hitArea.disposed )
             {				
-				if ( frame.containsPoint (localPoint )){
+				if ( frame.containsPoint (localPoint ) ) {						
 					var clippingX:Number = texture is SubTexture ? SubTexture (texture).clipping.x : 0;
-					var clippingY:Number = texture is SubTexture ? SubTexture (texture).clipping.y : 0;				
-					return _hitArea.getAlphaPixel ( ( localPoint.x + texture.frame.x + hitArea.width * clippingX ) * texture.scale, ( localPoint.y + texture.frame.y + hitArea.height * clippingY ) * texture.scale ) >= _threshold ? this : null;				
+					var clippingY:Number = texture is SubTexture ? SubTexture (texture).clipping.y : 0;			
+					try {
+						return _hitArea.getAlphaPixel ( ( localPoint.x + textureFrame.x + hitArea.width / texture.scale * clippingX ) * texture.scale, ( localPoint.y + textureFrame.y + hitArea.height / texture.scale * clippingY ) * texture.scale ) >= _threshold ? this : null;				
+					}catch (e:Error) { trace (e); return null; }
 				}else {
 					return null;
 				}
