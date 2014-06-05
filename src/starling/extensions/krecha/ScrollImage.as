@@ -591,8 +591,8 @@ package starling.extensions.krecha
 											options.push("linear", mipmap ? "mipnearest" : "mipnone");
 										else
 											options.push("linear", mipmap ? "miplinear" : "mipnone");
-										
-										if (target.profile == 'baselineExtended' || target.profile == 'baseline' && !useBase)
+											
+										if ((target.profile == 'baselineExtended' || target.profile == 'baseline') && !useBase)
 										options.push("clamp");
 										else
 										options.push("repeat");
