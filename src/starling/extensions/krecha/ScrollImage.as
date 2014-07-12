@@ -342,6 +342,8 @@ package starling.extensions.krecha
 			if (context == null)
 				throw new MissingContextError();
 			
+			if (context.driverInfo == "Disposed") return;
+			
 			if (mVertexBuffer)
 				mVertexBuffer.dispose();
 			if (mIndexBuffer)
